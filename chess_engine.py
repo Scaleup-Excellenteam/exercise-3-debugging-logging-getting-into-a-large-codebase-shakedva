@@ -222,13 +222,14 @@ class game_state:
     def checkmate_stalemate_checker(self):
         all_white_moves = self.get_all_legal_moves(Player.PLAYER_1)
         all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
-        if self._is_check and self.whose_turn() and not all_white_moves:
+        if self._is_check and self.whose_turn():
             print("white lost")
             return 0
-        elif self._is_check and not self.whose_turn() and not all_black_moves:
+        elif self._is_check and not self.whose_turn():
             print("black lost")
             return 1
-        elif not all_white_moves and not all_black_moves:
+        elif (self.whose_turn() and not all_white_moves) or \
+             (not self.whose_turn() and not all_black_moves):
             return 2
         else:
             return 3
