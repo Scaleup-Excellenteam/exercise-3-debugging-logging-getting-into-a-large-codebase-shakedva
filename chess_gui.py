@@ -7,10 +7,19 @@
 #
 import chess_engine
 import pygame as py
+import logging
 
 import ai_engine
 from enums import Player
 
+logging.basicConfig(
+    filename='chess.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+    datefmt='%d-%m-%Y %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+logger.info('starting main')
 """Variables"""
 WIDTH = HEIGHT = 512  # width and height of the chess board
 DIMENSION = 8  # the dimensions of the chess board
@@ -18,6 +27,7 @@ SQ_SIZE = HEIGHT // DIMENSION  # the size of each of the squares in the board
 MAX_FPS = 15  # FPS for animations
 IMAGES = {}  # images for the chess pieces
 colors = [py.Color("white"), py.Color("gray")]
+
 
 # TODO: AI black has been worked on. Mirror progress for other two modes
 def load_images():
@@ -66,6 +76,8 @@ def draw_pieces(screen, game_state):
 
 
 def highlight_square(screen, game_state, valid_moves, square_selected):
+    if square_selected:
+        logger.debug(f'{square_selected=}, {valid_moves=}')
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
         row = square_selected[0]
         col = square_selected[1]
@@ -111,7 +123,7 @@ def main():
     py.init()
     screen = py.display.set_mode((WIDTH, HEIGHT))
     clock = py.time.Clock()
-    game_state = chess_engine.game_state()
+    # game_state = chess_engine.game_state() TODO remove (shaked)
     load_images()
     running = True
     square_selected = ()  # keeps track of the last selected square
@@ -134,31 +146,38 @@ def main():
                     location = py.mouse.get_pos()
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
+                    # Player clicked on the same square twice
                     if square_selected == (row, col):
                         square_selected = ()
                         player_clicks = []
+                    # Player clicked on a square and then clicked on the target location
                     else:
                         square_selected = (row, col)
                         player_clicks.append(square_selected)
+                    # Player clicked twice so an action is needed
+                    logger.debug(f"{player_clicks=}")
                     if len(player_clicks) == 2:
-                        # this if is useless right now
-                        if (player_clicks[1][0], player_clicks[1][1]) not in valid_moves:
+                        target_location = (player_clicks[1][0], player_clicks[1][1])
+                        if target_location not in valid_moves:
                             square_selected = ()
                             player_clicks = []
                             valid_moves = []
+                        # Target location is one of the valid moves, move piece
                         else:
-                            game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
-                                                  (player_clicks[1][0], player_clicks[1][1]), False)
+                            game_state.move_piece(player_clicks[0], player_clicks[1], False)
                             square_selected = ()
                             player_clicks = []
                             valid_moves = []
 
+                            # Following if-elif are relevant only for AI games
                             if human_player is 'w':
                                 ai_move = ai.minimax_white(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
                             elif human_player is 'b':
                                 ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
+
+                    # Player clicked only once, get the valid moves from the clicked square
                     else:
                         valid_moves = game_state.get_valid_moves((row, col))
                         if valid_moves is None:
