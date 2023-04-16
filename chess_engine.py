@@ -31,7 +31,7 @@ r \ c     0           1           2           3           4           5         
 class game_state:
     # Initialize 2D array to represent the chess board
     def __init__(self):
-        logger.debug('creating game state..')
+        logger.info(f"New game started")
         # The board is a 2D array
         # TODO: Change to a numpy format later
         self.white_captives = []
@@ -113,6 +113,8 @@ class game_state:
             [black_rook_1, black_knight_1, black_bishop_1, black_king, black_queen, black_bishop_2, black_knight_2,
              black_rook_2]
         ]
+
+
 
     def get_piece(self, row, col):
         if (0 <= row < 8) and (0 <= col < 8):
@@ -224,16 +226,77 @@ class game_state:
         all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
         king_row, king_col = self._white_king_location if self.whose_turn() else self._black_king_location
         if self._is_check and self.whose_turn() and self.get_piece(king_row, king_col).get_name() != 'k':
-            print("white lost")
+            logger.info("Black player won")
+            self._process_move_log()
             return 0
         elif self._is_check and not self.whose_turn() and self.get_piece(king_row, king_col).get_name() != 'k':
-            print("black lost")
+            logger.info("White player won")
+            self._process_move_log()
             return 1
         elif (self.whose_turn() and not all_white_moves) or \
              (not self.whose_turn() and not all_black_moves):
+            logger.info("Stalemate")
+            self._process_move_log()
             return 2
         else:
             return 3
+
+    def _process_move_log(self):
+        if not self.move_log:
+            return
+        logger.info(f"First turn by {self.move_log[0].moving_piece.get_player()} player")
+
+        player_to_knight_moves_num = {
+            Player.PLAYER_1: 0,
+            Player.PLAYER_2: 0
+        }
+        for move in self.move_log:
+            player_to_knight_moves_num[move.moving_piece.get_player()] += move.moving_piece.get_name() == 'n'
+        for player in [Player.PLAYER_1, Player.PLAYER_2]:
+            logger.info(f"{player} knight moves: {player_to_knight_moves_num[player]}")
+        logger.info(f"total knight moves: {sum(player_to_knight_moves_num.values())}")
+
+        player_to_all_pieces_turns_num = {
+            Player.PLAYER_1: 0,
+            Player.PLAYER_2: 0
+        }
+        player_to_count_flag = {
+            Player.PLAYER_1: True,
+            Player.PLAYER_2: True
+        }
+
+        """            white black
+        white -> empty 1    1
+        black - > empty 2   2
+        white -> empty 3    3
+        black -> empty 4    4
+        white -> black  5   4
+        black -> empty 6    4
+        white -> black 7     4
+        black -> white
+        
+        """
+        for move in self.move_log:
+            for player in [Player.PLAYER_1, Player.PLAYER_2]:
+                if (move.removed_piece != Player.EMPTY) and (player == move.removed_piece.get_player()):
+                    player_to_count_flag[player] = False
+                if player_to_count_flag[player]:
+                    player_to_all_pieces_turns_num[player] += 1
+
+            #
+            # if move.removed_piece == Player.EMPTY:
+            #     for player in [Player.PLAYER_1, Player.PLAYER_2]:
+            #         if player_to_count_flag[player]:
+            #             player_to_all_pieces_turns_num[player] += 1
+            # else:
+            #     player_to_all_pieces_turns_num[player] += 1
+            #     player_to_count_flag[move.removed_piece.get_player()] = False
+
+        for player in [Player.PLAYER_1, Player.PLAYER_2]:
+            logger.info(f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
+
+
+
 
     def get_all_legal_moves(self, player):
         # _all_valid_moves = [[], []]
@@ -459,11 +522,14 @@ class game_state:
                     else:
                         self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                         self.can_en_passant_bool = False
-                else:
+                else:  # Bishop/Queen/Knight
                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                     self.can_en_passant_bool = False
 
                 if temp:
+                    # TODO knights moves log
+                    # player = Player.PLAYER_1 if self.whose_turn() else Player.PLAYER_2
+                    # self.player_to_knight_moves_num[player] += (moving_piece.get_name() == 'n')
                     moving_piece.change_row_number(next_square_row)
                     moving_piece.change_col_number(next_square_col)
                     self.board[next_square_row][next_square_col] = self.board[current_square_row][current_square_col]
@@ -864,7 +930,6 @@ class game_state:
 
 class chess_move():
     def __init__(self, starting_square, ending_square, game_state, in_check):
-        logger.debug(f"Moving: {starting_square} -> {ending_square}")
         self.starting_square_row = starting_square[0]
         self.starting_square_col = starting_square[1]
         self.moving_piece = game_state.get_piece(self.starting_square_row, self.starting_square_col)

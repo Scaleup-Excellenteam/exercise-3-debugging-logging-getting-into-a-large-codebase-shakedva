@@ -19,7 +19,6 @@ logging.basicConfig(
     datefmt='%d-%m-%Y %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-logger.info('starting main')
 """Variables"""
 WIDTH = HEIGHT = 512  # width and height of the chess board
 DIMENSION = 8  # the dimensions of the chess board
@@ -76,8 +75,6 @@ def draw_pieces(screen, game_state):
 
 
 def highlight_square(screen, game_state, valid_moves, square_selected):
-    if square_selected:
-        logger.debug(f'{square_selected=}, {valid_moves=}')
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
         row = square_selected[0]
         col = square_selected[1]
@@ -98,6 +95,7 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
 
 
 def main():
+
     # Check for the number of players and the color of the AI
     human_player = ""
     while True:
@@ -123,7 +121,6 @@ def main():
     py.init()
     screen = py.display.set_mode((WIDTH, HEIGHT))
     clock = py.time.Clock()
-    # game_state = chess_engine.game_state() TODO remove (shaked)
     load_images()
     running = True
     square_selected = ()  # keeps track of the last selected square
@@ -133,6 +130,7 @@ def main():
 
     ai = ai_engine.chess_ai()
     game_state = chess_engine.game_state()
+
     if human_player is 'b':
         ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
         game_state.move_piece(ai_move[0], ai_move[1], True)
@@ -155,7 +153,6 @@ def main():
                         square_selected = (row, col)
                         player_clicks.append(square_selected)
                     # Player clicked twice so an action is needed
-                    logger.debug(f"{player_clicks=}")
                     if len(player_clicks) == 2:
                         target_location = (player_clicks[1][0], player_clicks[1][1])
                         if target_location not in valid_moves:
@@ -199,12 +196,15 @@ def main():
         endgame = game_state.checkmate_stalemate_checker()
         if endgame == 0:
             game_over = True
+            logger.info("Black wins")
             draw_text(screen, "Black wins.")
         elif endgame == 1:
             game_over = True
+            logger.info("White wins")
             draw_text(screen, "White wins.")
         elif endgame == 2:
             game_over = True
+            logger.info("Stalemate")
             draw_text(screen, "Stalemate.")
 
         clock.tick(MAX_FPS)
