@@ -196,15 +196,12 @@ def main():
         endgame = game_state.checkmate_stalemate_checker()
         if endgame == 0:
             game_over = True
-            logger.info("Black wins")
             draw_text(screen, "Black wins.")
         elif endgame == 1:
             game_over = True
-            logger.info("White wins")
             draw_text(screen, "White wins.")
         elif endgame == 2:
             game_over = True
-            logger.info("Stalemate")
             draw_text(screen, "Stalemate.")
 
         clock.tick(MAX_FPS)
