@@ -5,7 +5,7 @@
 # Note: move log class inspired by Eddie Sharick
 #
 from Piece import Rook, Knight, Bishop, Queen, King, Pawn
-from enums import Player
+from enums import Player, GameStatus
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class game_state:
         self.white_king_can_castle = [True, True,
                                       True]  # Has king not moved, has Rook1(col=0) not moved, has Rook2(col=7) not moved
         self.black_king_can_castle = [True, True, True]
-
+        self.log_game_summary = True
         # Initialize White pieces
         white_rook_1 = Rook('r', 0, 0, Player.PLAYER_1)
         white_rook_2 = Rook('r', 0, 7, Player.PLAYER_1)
@@ -114,8 +114,6 @@ class game_state:
              black_rook_2]
         ]
 
-
-
     def get_piece(self, row, col):
         if (0 <= row < 8) and (0 <= col < 8):
             return self.board[row][col]
@@ -138,9 +136,11 @@ class game_state:
             valid_moves = []
             moving_piece = self.get_piece(current_row, current_col)
             if self.get_piece(current_row, current_col).is_player(Player.PLAYER_1):
-                king_location = self._black_king_location
-            else:
+                # king_location = self._black_king_location
                 king_location = self._white_king_location
+            else:
+                # king_location = self._white_king_location
+                king_location = self._black_king_location
             group = self.check_for_check(king_location, moving_piece.get_player())
             checking_pieces = group[0]
             pinned_pieces = group[1]
@@ -224,26 +224,32 @@ class game_state:
     def checkmate_stalemate_checker(self):
         all_white_moves = self.get_all_legal_moves(Player.PLAYER_1)
         all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
-        king_row, king_col = self._white_king_location if self.whose_turn() else self._black_king_location
-        if self._is_check and self.whose_turn() and self.get_piece(king_row, king_col).get_name() != 'k':
-            logger.info("Black player won")
-            self._process_move_log()
-            return 0
-        elif self._is_check and not self.whose_turn() and self.get_piece(king_row, king_col).get_name() != 'k':
-            logger.info("White player won")
-            self._process_move_log()
-            return 1
-        elif (self.whose_turn() and not all_white_moves) or \
-             (not self.whose_turn() and not all_black_moves):
-            logger.info("Stalemate")
-            self._process_move_log()
-            return 2
+        if self._is_check and self.whose_turn() and not all_white_moves:
+            game_status = GameStatus.BLACK_WON
+        elif self._is_check and not self.whose_turn() and not all_black_moves:
+            game_status = GameStatus.WHITE_WON
+        elif not all_white_moves and not all_black_moves:
+            game_status = GameStatus.STALEMATE
         else:
-            return 3
+            game_status = GameStatus.IN_PROGRESS
 
-    def _process_move_log(self):
+        if game_status != GameStatus.IN_PROGRESS:
+            self._process_move_log(game_status)
+        return game_status
+
+    def _process_move_log(self, game_status):
         if not self.move_log:
             return
+        if not self.log_game_summary:
+            return
+
+        game_status_to_msg = {
+            GameStatus.WHITE_WON: 'White player won',
+            GameStatus.BLACK_WON: 'Black player won',
+            GameStatus.STALEMATE: 'Stalemate'
+        }
+        logger.info(game_status_to_msg[game_status])
+
         logger.info(f"First turn by {self.move_log[0].moving_piece.get_player()} player")
 
         player_to_knight_moves_num = {
@@ -265,17 +271,6 @@ class game_state:
             Player.PLAYER_2: True
         }
 
-        """            white black
-        white -> empty 1    1
-        black - > empty 2   2
-        white -> empty 3    3
-        black -> empty 4    4
-        white -> black  5   4
-        black -> empty 6    4
-        white -> black 7     4
-        black -> white
-        
-        """
         for move in self.move_log:
             for player in [Player.PLAYER_1, Player.PLAYER_2]:
                 if (move.removed_piece != Player.EMPTY) and (player == move.removed_piece.get_player()):
@@ -283,20 +278,15 @@ class game_state:
                 if player_to_count_flag[player]:
                     player_to_all_pieces_turns_num[player] += 1
 
-            #
-            # if move.removed_piece == Player.EMPTY:
-            #     for player in [Player.PLAYER_1, Player.PLAYER_2]:
-            #         if player_to_count_flag[player]:
-            #             player_to_all_pieces_turns_num[player] += 1
-            # else:
-            #     player_to_all_pieces_turns_num[player] += 1
-            #     player_to_count_flag[move.removed_piece.get_player()] = False
-
         for player in [Player.PLAYER_1, Player.PLAYER_2]:
-            logger.info(f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
+            logger.info(
+                f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
 
-
-
+        total_checks_num = sum([move.in_check for move in self.move_log])
+        logger.info(f"Total number of checks are {total_checks_num}")
+        for move in self.move_log:
+            logger.debug(move.__dict__)
+        self.log_game_summary = False
 
     def get_all_legal_moves(self, player):
         # _all_valid_moves = [[], []]
@@ -527,9 +517,6 @@ class game_state:
                     self.can_en_passant_bool = False
 
                 if temp:
-                    # TODO knights moves log
-                    # player = Player.PLAYER_1 if self.whose_turn() else Player.PLAYER_2
-                    # self.player_to_knight_moves_num[player] += (moving_piece.get_name() == 'n')
                     moving_piece.change_row_number(next_square_row)
                     moving_piece.change_col_number(next_square_col)
                     self.board[next_square_row][next_square_col] = self.board[current_square_row][current_square_col]
@@ -641,6 +628,7 @@ class game_state:
 
     def check_for_check(self, king_location, player):
         # self._is_check = False
+
         _checks = []
         _pins = []
         _pins_check = []
