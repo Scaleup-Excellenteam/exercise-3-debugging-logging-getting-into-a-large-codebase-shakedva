@@ -136,10 +136,8 @@ class game_state:
             valid_moves = []
             moving_piece = self.get_piece(current_row, current_col)
             if self.get_piece(current_row, current_col).is_player(Player.PLAYER_1):
-                # king_location = self._black_king_location
                 king_location = self._white_king_location
             else:
-                # king_location = self._white_king_location
                 king_location = self._black_king_location
             group = self.check_for_check(king_location, moving_piece.get_player())
             checking_pieces = group[0]
@@ -232,7 +230,6 @@ class game_state:
             game_status = GameStatus.STALEMATE
         else:
             game_status = GameStatus.IN_PROGRESS
-
         if game_status != GameStatus.IN_PROGRESS:
             self._process_move_log(game_status)
         return game_status
@@ -282,10 +279,11 @@ class game_state:
             logger.info(
                 f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
 
-        total_checks_num = sum([move.in_check for move in self.move_log])
+        total_checks_num = sum([move.in_check for move in self.move_log]) + 1 # add the last move which is a check
         logger.info(f"Total number of checks are {total_checks_num}")
         for move in self.move_log:
-            logger.debug(move.__dict__)
+            logger.info(f"Moving {move.moving_piece.get_name()} from ({move.starting_square_row}, {move.starting_square_col})"
+                        f" to ({move.ending_square_row}, {move.ending_square_col})")
         self.log_game_summary = False
 
     def get_all_legal_moves(self, player):
