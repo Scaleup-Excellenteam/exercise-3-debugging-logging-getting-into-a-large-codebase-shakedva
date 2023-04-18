@@ -239,7 +239,15 @@ class game_state:
             return
         if not self.log_game_summary:
             return
+        self._log_won_stalemate(game_status)
+        logger.info(f"First turn by {self.move_log[0].moving_piece.get_player()} player")
+        self._log_knights_num_of_moves()
+        self._log_num_of_turns_all_pieces_survived()
+        self._log_num_of_checks()
+        self._log_all_moves()
+        self.log_game_summary = False
 
+    def _log_won_stalemate(self, game_status):
         game_status_to_msg = {
             GameStatus.WHITE_WON: 'White player won',
             GameStatus.BLACK_WON: 'Black player won',
@@ -247,8 +255,7 @@ class game_state:
         }
         logger.info(game_status_to_msg[game_status])
 
-        logger.info(f"First turn by {self.move_log[0].moving_piece.get_player()} player")
-
+    def _log_knights_num_of_moves(self):
         player_to_knight_moves_num = {
             Player.PLAYER_1: 0,
             Player.PLAYER_2: 0
@@ -259,6 +266,7 @@ class game_state:
             logger.info(f"{player} knight moves: {player_to_knight_moves_num[player]}")
         logger.info(f"total knight moves: {sum(player_to_knight_moves_num.values())}")
 
+    def _log_num_of_turns_all_pieces_survived(self):
         player_to_all_pieces_turns_num = {
             Player.PLAYER_1: 0,
             Player.PLAYER_2: 0
@@ -279,12 +287,15 @@ class game_state:
             logger.info(
                 f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
 
-        total_checks_num = sum([move.in_check for move in self.move_log]) + 1 # add the last move which is a check
+    def _log_num_of_checks(self):
+        total_checks_num = sum([move.in_check for move in self.move_log]) + 1  # add the last move which is a check
         logger.info(f"Total number of checks are {total_checks_num}")
+
+    def _log_all_moves(self):
         for move in self.move_log:
-            logger.info(f"Moving {move.moving_piece.get_name()} from ({move.starting_square_row}, {move.starting_square_col})"
-                        f" to ({move.ending_square_row}, {move.ending_square_col})")
-        self.log_game_summary = False
+            logger.info(
+                f"Moving {move.moving_piece.get_name()} from ({move.starting_square_row}, {move.starting_square_col})"
+                f" to ({move.ending_square_row}, {move.ending_square_col})")
 
     def get_all_legal_moves(self, player):
         # _all_valid_moves = [[], []]
