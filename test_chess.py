@@ -1,8 +1,8 @@
 import ai_engine
-import chess_engine
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 from Piece import Knight, King, Rook
-from enums import Player
+from enums import Player, GameStatus
+import chess_engine
 
 """
 Unit tests
@@ -12,6 +12,9 @@ Unit tests
 # Tests for the function get_valid_peaceful_moves in class Knight
 
 def test_knight_middle_empty():
+    """
+    The knight is in the middle, all the surrounding squares are empty
+    """
     game_state_mock = Mock()
     game_state_mock.get_piece = Mock(return_value=Player.EMPTY)
     white_knight = Knight('n', 3, 4, Player.PLAYER_1)
@@ -20,6 +23,10 @@ def test_knight_middle_empty():
 
 
 def test_knight_right_empty():
+    """
+    The knight is on the left side of the board, half of the squares are empty (from the right side)
+    and the rest are off the board
+    """
     game_state_mock = Mock()
     game_state_mock.get_piece = Mock(return_value=Player.EMPTY)
     white_knight = Knight('n', 2, 0, Player.PLAYER_1)
@@ -29,6 +36,10 @@ def test_knight_right_empty():
 
 
 def test_knight_upper_empty():
+    """
+    The knight is on the bottom of the board, half of the squares off the board, one of the squares contain an enemy
+    piece and the rest are empty
+    """
     game_state_mock = Mock()
     game_state_mock.get_piece.side_effect = lambda row, col: Knight('n', row, col, Player.PLAYER_1) \
         if (row, col) in [(6, 3)] else Player.EMPTY
@@ -42,6 +53,9 @@ def test_knight_upper_empty():
 # Tests for the function get_valid_piece_takes in class Knight
 
 def test_knight_only_take_moves():
+    """
+    The knight is in the middle, all the surrounding squares contain enemy pieces
+    """
     game_state_mock = Mock()
     game_state_mock.is_valid_piece.side_effect = lambda row, col: True if 0 <= row < 8 and 0 <= col < 8 else False
     game_state_mock.get_piece.side_effect = lambda row, col: Knight('n', row, col, Player.PLAYER_2) \
@@ -55,6 +69,10 @@ def test_knight_only_take_moves():
 
 
 def test_knight_upper_take_moves():
+    """
+    The knight is on the bottom of the board, half of the squares off the board, one of the squares contain an enemy
+    piece and the rest are empty
+    """
     game_state_mock = Mock()
     game_state_mock.is_valid_piece.side_effect = \
         lambda row, col: True if (0 <= row < 8 and 0 <= col < 8 and (row, col) != (6, 5)) else False
@@ -72,6 +90,10 @@ Integration tests
 
 
 def test_knight_get_valid_piece_moves():
+    """
+    The knight is in the middle of the board. Some contain enemy pieces, some empty.
+    Test the function get_valid_piece_moves
+    """
     game_state_mock = Mock()
     game_state_mock.is_valid_piece.side_effect = lambda row, col: \
         True if (0 <= row < 8 and 0 <= col < 8 and ((row, col) in [(1, 2), (2, 5), (4, 1)])) else False
@@ -89,6 +111,10 @@ def test_knight_get_valid_piece_moves():
 
 
 def test_evaluate_board_white_ai():
+    """
+    The AI is white player, there are also 2 black pieces.
+    Check chess_ai function evaluate_board.
+    """
     game_state_mock = Mock()
     game_state_mock.is_valid_piece.side_effect = lambda row, col: \
         True if (0 <= row < 8 and 0 <= col < 8 and ((row, col) in [(4, 5), (6, 2)])) else False
@@ -106,4 +132,22 @@ def test_evaluate_board_white_ai():
     ai = ai_engine.chess_ai()
     evaluate = ai.evaluate_board(game_state_mock, Player.PLAYER_2)  # AI is white player
     assert evaluate == -1050  # black king is -1000, black rook is -50
+
+
+"""
+System tests
+"""
+
+
+def test_fools_mate():
+    """
+    Black plays fools mate
+    """
+    game_state = chess_engine.game_state()
+    game_state.move_piece((1, 2), (2, 2), False)  # f3
+    game_state.move_piece((6, 3), (5, 3), False)  # e6
+    game_state.move_piece((1, 1), (3, 1), False)  # g4
+    game_state.move_piece((7, 4), (3, 0), False)  # Qh4#
+    assert game_state.checkmate_stalemate_checker() == GameStatus.BLACK_WON
+
 
