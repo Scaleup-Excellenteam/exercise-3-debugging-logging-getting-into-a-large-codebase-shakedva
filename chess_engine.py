@@ -235,6 +235,10 @@ class game_state:
         return game_status
 
     def _process_move_log(self, game_status):
+        """
+        Calls all the relevant functions to save data into log file.
+        :param game_status: GameStatus represent whether the game finished and how, or not.
+        """
         if not self.move_log:
             return
         if not self.log_game_summary:
@@ -248,6 +252,10 @@ class game_state:
         self.log_game_summary = False
 
     def _log_won_stalemate(self, game_status):
+        """
+        Saves which player won the game in a log file.
+        :param game_status: GameStatus represent whether the game finished and how, or not.
+        """
         game_status_to_msg = {
             GameStatus.WHITE_WON: 'White player won',
             GameStatus.BLACK_WON: 'Black player won',
@@ -256,17 +264,25 @@ class game_state:
         logger.info(game_status_to_msg[game_status])
 
     def _log_knights_num_of_moves(self):
+        """
+        Saves the amount of knight moves for each player in a log file.
+        """
         player_to_knight_moves_num = {
             Player.PLAYER_1: 0,
             Player.PLAYER_2: 0
         }
+        # Count the knights moves for each player
         for move in self.move_log:
             player_to_knight_moves_num[move.moving_piece.get_player()] += move.moving_piece.get_name() == 'n'
+        # Save data into log file
         for player in [Player.PLAYER_1, Player.PLAYER_2]:
             logger.info(f"{player} knight moves: {player_to_knight_moves_num[player]}")
         logger.info(f"total knight moves: {sum(player_to_knight_moves_num.values())}")
 
     def _log_num_of_turns_all_pieces_survived(self):
+        """
+        Saves the number of turns each player survived with all of its pieces in a log file.
+        """
         player_to_all_pieces_turns_num = {
             Player.PLAYER_1: 0,
             Player.PLAYER_2: 0
@@ -275,23 +291,29 @@ class game_state:
             Player.PLAYER_1: True,
             Player.PLAYER_2: True
         }
-
         for move in self.move_log:
             for player in [Player.PLAYER_1, Player.PLAYER_2]:
+                # When player loses a piece, stop counting the turns.
                 if (move.removed_piece != Player.EMPTY) and (player == move.removed_piece.get_player()):
                     player_to_count_flag[player] = False
                 if player_to_count_flag[player]:
                     player_to_all_pieces_turns_num[player] += 1
-
+        # Save data into log file
         for player in [Player.PLAYER_1, Player.PLAYER_2]:
             logger.info(
                 f"Number of turns all pieces of {player} player survived: {player_to_all_pieces_turns_num[player]}")
 
     def _log_num_of_checks(self):
+        """
+        Saves the number of checks in a log file.
+        """
         total_checks_num = sum([move.in_check for move in self.move_log]) + 1  # add the last move which is a check
         logger.info(f"Total number of checks are {total_checks_num}")
 
     def _log_all_moves(self):
+        """
+        Saves the moves for each turn in a log file.
+        """
         for move in self.move_log:
             logger.info(
                 f"Moving {move.moving_piece.get_name()} from ({move.starting_square_row}, {move.starting_square_col})"
