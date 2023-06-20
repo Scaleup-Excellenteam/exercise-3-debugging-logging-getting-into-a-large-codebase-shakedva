@@ -230,6 +230,7 @@ class game_state:
             game_status = GameStatus.STALEMATE
         else:
             game_status = GameStatus.IN_PROGRESS
+            self._is_check = False  # reset
         if game_status != GameStatus.IN_PROGRESS:
             self._process_move_log(game_status)
         return game_status
