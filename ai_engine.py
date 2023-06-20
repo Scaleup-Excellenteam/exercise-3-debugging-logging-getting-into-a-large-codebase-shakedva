@@ -140,21 +140,8 @@ class chess_ai:
         return evaluation_score
 
     def get_piece_value(self, piece, player):
-        if player is Player.PLAYER_1:
+        if player is Player.PLAYER_1:  # AI is black player
             if piece.is_player("black"):
-                if piece.get_name() is "k":
-                    return -1000
-                elif piece.get_name() is "q":
-                    return -100
-                elif piece.get_name() is "r":
-                    return -50
-                elif piece.get_name() is "b":
-                    return -30
-                elif piece.get_name() is "n":
-                    return -30
-                elif piece.get_name() is "p":
-                    return -10
-            else:
                 if piece.get_name() is "k":
                     return 1000
                 elif piece.get_name() is "q":
@@ -167,7 +154,20 @@ class chess_ai:
                     return 30
                 elif piece.get_name() is "p":
                     return 10
-        else:
+            else:
+                if piece.get_name() is "k":
+                    return -1000
+                elif piece.get_name() is "q":
+                    return -100
+                elif piece.get_name() is "r":
+                    return -50
+                elif piece.get_name() is "b":
+                    return -30
+                elif piece.get_name() is "n":
+                    return -30
+                elif piece.get_name() is "p":
+                    return -10
+        else:  # AI is white player
             if piece.is_player("white"):
                 if piece.get_name() is "k":
                     return 1000
